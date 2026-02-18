@@ -2,11 +2,16 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig(({ mode }) => {
-  // Load .env.local so we can use tokens in the proxy config (Node-side only)
-  const env = loadEnv(mode, '../', 'VITE_')
+  // Load .env.local from frontend/ (where vite.config.js lives).
+  // Keep frontend/.env.local in sync with the root .env.local.
+  // Using '.' means both the proxy (Node-side) and the browser bundle see the vars.
+  const env = loadEnv(mode, '.', 'VITE_')
 
   return {
     plugins: [react()],
+
+    // Tell Vite to load .env files from the frontend/ directory
+    envDir: '.',
 
     build: {
       rollupOptions: {
