@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: Automatiq Marketing Dashboard — API backend
 
@@ -8,7 +8,7 @@ Globals:
     Runtime: nodejs20.x
     Timeout: 15
     MemorySize: 256
-    Architectures: [arm64]   # Graviton2 — cheaper + faster for Node
+    Architectures: [arm64] # Graviton2 — cheaper + faster for Node
     Environment:
       Variables:
         # Set these in samconfig.toml parameter overrides or via
@@ -42,18 +42,8 @@ Parameters:
     NoEcho: true
     Description: Pendo integration key
 
-  Ga4PropertyId:
-    Type: String
-    Description: GA4 property ID (numbers only)
-
-  Ga4ApiSecret:
-    Type: String
-    NoEcho: true
-    Description: GA4 Measurement Protocol API secret (or service account JSON for Data API)
-
 # ─── Resources ──────────────────────────────────────────────────────────────
 Resources:
-
   # ── HubSpot Lambda ──────────────────────────────────────────────────────
   HubSpotFunction:
     Type: AWS::Serverless::Function
@@ -103,30 +93,6 @@ Resources:
           Type: Api
           Properties:
             Path: /pendo/features
-            Method: GET
-
-  # ── GA4 Lambda ──────────────────────────────────────────────────────────
-  Ga4Function:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub "marketing-dashboard-ga4-${Environment}"
-      CodeUri: functions/ga4/
-      Handler: index.handler
-      Description: Proxy for Google Analytics 4 Data API
-      Environment:
-        Variables:
-          GA4_PROPERTY_ID: !Ref Ga4PropertyId
-          GA4_API_SECRET: !Ref Ga4ApiSecret
-      Events:
-        Sessions:
-          Type: Api
-          Properties:
-            Path: /ga4/sessions
-            Method: GET
-        TopPages:
-          Type: Api
-          Properties:
-            Path: /ga4/top-pages
             Method: GET
 
 # ─── Outputs ────────────────────────────────────────────────────────────────

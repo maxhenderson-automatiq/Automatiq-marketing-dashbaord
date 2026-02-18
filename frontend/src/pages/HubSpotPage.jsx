@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -19,16 +19,21 @@ export default function HubSpotPage() {
     queryKey: ['contacts-summary'],
     queryFn: getContactSummary,
   })
-
+  
   const { data: allPipelines } = useQuery({
     queryKey: ['pipelines'],
     queryFn: getPipelines,
   })
-
+  
   const { data: pipeline, isLoading: loadingDeals } = useQuery({
     queryKey: ['deal-pipeline', selectedPipeline],
     queryFn: () => getDealPipeline(selectedPipeline || undefined),
   })
+
+  useEffect(() => {
+    console.log("contacts")
+    console.log(contacts)
+  }, [contacts])
 
   const totalDealValue = (pipeline ?? []).reduce((s, d) => s + d.amount, 0)
 

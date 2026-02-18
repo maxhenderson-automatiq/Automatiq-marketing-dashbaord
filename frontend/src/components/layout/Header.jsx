@@ -4,7 +4,8 @@ import './Header.css'
 
 const PAGE_TITLES = {
   '/dashboard': 'Overview',
-  '/hubspot': 'HubSpot',
+  '/hubspot': 'HubSpot — CRM Overview',
+  '/hubspot/insights': 'HubSpot — Marketing Insights',
   '/pendo': 'Pendo',
 }
 

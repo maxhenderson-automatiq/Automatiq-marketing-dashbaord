@@ -1,6 +1,0 @@
-{
-  "name": "marketing-dashboard-ga4",
-  "version": "1.0.0",
-  "type": "module",
-  "description": "GA4 proxy Lambda"
-}

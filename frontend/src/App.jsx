@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from './components/layout/Layout'
 import DashboardPage from './pages/DashboardPage'
 import HubSpotPage from './pages/HubSpotPage'
+import HubSpotInsightsPage from './pages/HubSpotInsightsPage'
 import PendoPage from './pages/PendoPage'
 import './App.css'
 
@@ -24,6 +25,7 @@ export default function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="hubspot" element={<HubSpotPage />} />
+            <Route path="hubspot/insights" element={<HubSpotInsightsPage />} />
             <Route path="pendo" element={<PendoPage />} />
           </Route>
         </Routes>
