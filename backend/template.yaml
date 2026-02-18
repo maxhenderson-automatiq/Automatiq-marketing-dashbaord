@@ -1,0 +1,136 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Automatiq Marketing Dashboard — API backend
+
+# ─── Global defaults applied to all Lambda functions ───────────────────────
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 15
+    MemorySize: 256
+    Architectures: [arm64]   # Graviton2 — cheaper + faster for Node
+    Environment:
+      Variables:
+        # Set these in samconfig.toml parameter overrides or via
+        # `sam deploy --parameter-overrides` — never commit real values here
+        NODE_ENV: !Ref Environment
+  Api:
+    Cors:
+      AllowMethods: "'GET,OPTIONS'"
+      AllowHeaders: "'Content-Type'"
+      AllowOrigin: !Sub "'${FrontendOrigin}'"
+
+# ─── Parameters ─────────────────────────────────────────────────────────────
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+
+  FrontendOrigin:
+    Type: String
+    Description: "CloudFront or localhost origin allowed to call the API (e.g. https://d1234.cloudfront.net)"
+    Default: "http://localhost:5173"
+
+  HubSpotAccessToken:
+    Type: String
+    NoEcho: true
+    Description: HubSpot private app access token
+
+  PendoApiKey:
+    Type: String
+    NoEcho: true
+    Description: Pendo integration key
+
+  Ga4PropertyId:
+    Type: String
+    Description: GA4 property ID (numbers only)
+
+  Ga4ApiSecret:
+    Type: String
+    NoEcho: true
+    Description: GA4 Measurement Protocol API secret (or service account JSON for Data API)
+
+# ─── Resources ──────────────────────────────────────────────────────────────
+Resources:
+
+  # ── HubSpot Lambda ──────────────────────────────────────────────────────
+  HubSpotFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "marketing-dashboard-hubspot-${Environment}"
+      CodeUri: functions/hubspot/
+      Handler: index.handler
+      Description: Proxy for HubSpot CRM API
+      Environment:
+        Variables:
+          HUBSPOT_ACCESS_TOKEN: !Ref HubSpotAccessToken
+      Events:
+        Contacts:
+          Type: Api
+          Properties:
+            Path: /hubspot/contacts
+            Method: GET
+        ContactTrend:
+          Type: Api
+          Properties:
+            Path: /hubspot/contacts/trend
+            Method: GET
+        Deals:
+          Type: Api
+          Properties:
+            Path: /hubspot/deals
+            Method: GET
+
+  # ── Pendo Lambda ────────────────────────────────────────────────────────
+  PendoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "marketing-dashboard-pendo-${Environment}"
+      CodeUri: functions/pendo/
+      Handler: index.handler
+      Description: Proxy for Pendo Aggregation API
+      Environment:
+        Variables:
+          PENDO_API_KEY: !Ref PendoApiKey
+      Events:
+        Dau:
+          Type: Api
+          Properties:
+            Path: /pendo/dau
+            Method: GET
+        Features:
+          Type: Api
+          Properties:
+            Path: /pendo/features
+            Method: GET
+
+  # ── GA4 Lambda ──────────────────────────────────────────────────────────
+  Ga4Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "marketing-dashboard-ga4-${Environment}"
+      CodeUri: functions/ga4/
+      Handler: index.handler
+      Description: Proxy for Google Analytics 4 Data API
+      Environment:
+        Variables:
+          GA4_PROPERTY_ID: !Ref Ga4PropertyId
+          GA4_API_SECRET: !Ref Ga4ApiSecret
+      Events:
+        Sessions:
+          Type: Api
+          Properties:
+            Path: /ga4/sessions
+            Method: GET
+        TopPages:
+          Type: Api
+          Properties:
+            Path: /ga4/top-pages
+            Method: GET
+
+# ─── Outputs ────────────────────────────────────────────────────────────────
+Outputs:
+  ApiBaseUrl:
+    Description: "API Gateway base URL — set as VITE_API_BASE_URL in frontend"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"

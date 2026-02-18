@@ -1,6 +1,5 @@
-import { hubspotGet } from './client'
+import { apiGet } from '../client'
 
-/** Mock data used when no token is set */
 const MOCK_SUMMARY = {
   total: 8412,
   newThisMonth: 342,
@@ -20,19 +19,11 @@ const MOCK_TREND = Array.from({ length: 12 }, (_, i) => ({
 }))
 
 export async function getContactSummary() {
-  if (!import.meta.env.VITE_HUBSPOT_ACCESS_TOKEN) {
-    return MOCK_SUMMARY
-  }
-  // TODO: implement real call
-  // const data = await hubspotGet('/crm/v3/objects/contacts', { limit: 1 })
-  // return transform(data)
-  return MOCK_SUMMARY
+  if (!import.meta.env.VITE_API_BASE_URL) return MOCK_SUMMARY
+  return apiGet('/hubspot/contacts')
 }
 
 export async function getContactTrend() {
-  if (!import.meta.env.VITE_HUBSPOT_ACCESS_TOKEN) {
-    return MOCK_TREND
-  }
-  // TODO: implement real call
-  return MOCK_TREND
+  if (!import.meta.env.VITE_API_BASE_URL) return MOCK_TREND
+  return apiGet('/hubspot/contacts/trend')
 }

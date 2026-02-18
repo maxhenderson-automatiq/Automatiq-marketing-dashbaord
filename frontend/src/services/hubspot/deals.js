@@ -1,4 +1,4 @@
-import { hubspotGet } from './client'
+import { apiGet } from '../client'
 
 const MOCK_PIPELINE = [
   { stage: 'Appointment Scheduled', count: 42, amount: 210000 },
@@ -10,10 +10,6 @@ const MOCK_PIPELINE = [
 ]
 
 export async function getDealPipeline() {
-  if (!import.meta.env.VITE_HUBSPOT_ACCESS_TOKEN) {
-    return MOCK_PIPELINE
-  }
-  // TODO: implement real call
-  // const data = await hubspotGet('/crm/v3/objects/deals', { limit: 100 })
-  return MOCK_PIPELINE
+  if (!import.meta.env.VITE_API_BASE_URL) return MOCK_PIPELINE
+  return apiGet('/hubspot/deals')
 }

@@ -7,12 +7,26 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
-dist
-dist-ssr
-*.local
+**/node_modules
 
-# Editor directories and files
+# Frontend build
+frontend/dist
+frontend/dist-ssr
+.vite
+
+# Backend SAM build artifacts
+backend/.aws-sam
+backend/samconfig.toml   # has account-specific values, generate locally
+
+# Env files (secrets)
+*.local
+.env
+.env.*
+!.env.local.example
+
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea

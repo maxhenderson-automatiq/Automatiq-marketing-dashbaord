@@ -1,4 +1,4 @@
-import { pendoPost } from './client'
+import { apiGet } from '../client'
 
 const MOCK_DAU = Array.from({ length: 30 }, (_, i) => ({
   date: new Date(Date.now() - (29 - i) * 86400000).toLocaleDateString('en-US', {
@@ -17,17 +17,11 @@ const MOCK_FEATURES = [
 ]
 
 export async function getDailyActiveUsers() {
-  if (!import.meta.env.VITE_PENDO_API_KEY) {
-    return MOCK_DAU
-  }
-  // TODO: implement real Aggregation API call
-  return MOCK_DAU
+  if (!import.meta.env.VITE_API_BASE_URL) return MOCK_DAU
+  return apiGet('/pendo/dau')
 }
 
 export async function getTopFeatures() {
-  if (!import.meta.env.VITE_PENDO_API_KEY) {
-    return MOCK_FEATURES
-  }
-  // TODO: implement real Aggregation API call
-  return MOCK_FEATURES
+  if (!import.meta.env.VITE_API_BASE_URL) return MOCK_FEATURES
+  return apiGet('/pendo/features')
 }
