@@ -3,37 +3,51 @@
  *
  * Local dev:  uses Vite proxy at /proxy/hubspot → api.hubapi.com
  * Production: calls /hubspot/* on the Lambda API Gateway proxy
+ *
+ * Rate limiting: HubSpot allows ~10 req/sec on private app tokens.
+ * We serialize calls that would otherwise burst in parallel.
  */
-import { apiGet, proxyGet, proxyPost, isLocalDev } from '../client'
+import { apiGet, proxyPost, isLocalDev } from '../client'
+
+/** Serialize an array of async fns with a ms delay between each */
+async function sequential(fns, delayMs = 120) {
+  const results = []
+  for (const fn of fns) {
+    results.push(await fn())
+    if (delayMs > 0 && fns.indexOf(fn) < fns.length - 1) {
+      await new Promise((r) => setTimeout(r, delayMs))
+    }
+  }
+  return results
+}
 
 // ─── Local dev (real API) ─────────────────────────────────────────────────
 
 async function fetchContactSummaryDirect() {
-  // Use search endpoint (supports total count) with limit:0 for efficiency
-  const [totalRes, newThisMonthRes] = await Promise.all([
-    proxyPost('/proxy/hubspot/crm/v3/objects/contacts/search', {
+  const firstOfMonth = new Date()
+  firstOfMonth.setDate(1)
+  firstOfMonth.setHours(0, 0, 0, 0)
+
+  // Total + new this month — sequential to avoid rate limit burst
+  const [totalRes, newThisMonthRes] = await sequential([
+    () => proxyPost('/proxy/hubspot/crm/v3/objects/contacts/search', {
       filterGroups: [],
       limit: 1,
       properties: ['lifecyclestage'],
     }),
-    (() => {
-      const firstOfMonth = new Date()
-      firstOfMonth.setDate(1)
-      firstOfMonth.setHours(0, 0, 0, 0)
-      return proxyPost('/proxy/hubspot/crm/v3/objects/contacts/search', {
-        filterGroups: [{
-          filters: [{
-            propertyName: 'createdate',
-            operator: 'GTE',
-            value: String(firstOfMonth.getTime()),
-          }],
+    () => proxyPost('/proxy/hubspot/crm/v3/objects/contacts/search', {
+      filterGroups: [{
+        filters: [{
+          propertyName: 'createdate',
+          operator: 'GTE',
+          value: String(firstOfMonth.getTime()),
         }],
-        limit: 1,
-      })
-    })(),
+      }],
+      limit: 1,
+    }),
   ])
 
-  // Lifecycle breakdown — parallel search per stage
+  // Lifecycle breakdown — serialized (6 calls)
   const stages = [
     { label: 'Subscriber',  value: 'subscriber' },
     { label: 'Lead',        value: 'lead' },
@@ -43,8 +57,8 @@ async function fetchContactSummaryDirect() {
     { label: 'Customer',    value: 'customer' },
   ]
 
-  const stageCounts = await Promise.all(
-    stages.map(async ({ label, value }) => {
+  const stageCounts = await sequential(
+    stages.map(({ label, value }) => async () => {
       const res = await proxyPost('/proxy/hubspot/crm/v3/objects/contacts/search', {
         filterGroups: [{
           filters: [{ propertyName: 'lifecyclestage', operator: 'EQ', value }],
@@ -64,7 +78,7 @@ async function fetchContactSummaryDirect() {
 }
 
 async function fetchContactTrendDirect() {
-  // Monthly new contact counts for last 12 months
+  // 12 monthly buckets — serialized to stay under rate limit
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date()
     d.setMonth(d.getMonth() - (11 - i))
@@ -73,8 +87,8 @@ async function fetchContactTrendDirect() {
     return d
   })
 
-  const counts = await Promise.all(
-    months.map(async (start, i) => {
+  const counts = await sequential(
+    months.map((start, i) => async () => {
       const end = i < 11 ? months[i + 1] : new Date()
       const res = await proxyPost('/proxy/hubspot/crm/v3/objects/contacts/search', {
         filterGroups: [{
@@ -91,6 +105,7 @@ async function fetchContactTrendDirect() {
       }
     })
   )
+
   return counts
 }
 
