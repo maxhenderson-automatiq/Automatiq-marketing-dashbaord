@@ -15,6 +15,18 @@
   margin: 0;
 }
 
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.header-data-mode {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .header-date {
   font-size: 0.85rem;
   color: var(--color-text-muted);

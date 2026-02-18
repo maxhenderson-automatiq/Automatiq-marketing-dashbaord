@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -5,21 +6,31 @@ import {
 } from 'recharts'
 import ChartCard from '../components/ui/ChartCard'
 import StatCard from '../components/ui/StatCard'
-import { getContactSummary, getContactTrend } from '../services/hubspot/contacts'
-import { getDealPipeline } from '../services/hubspot/deals'
+import { getContactSummary } from '../services/hubspot/contacts'
+import { getDealPipeline, getPipelines } from '../services/hubspot/deals'
 import './HubSpotPage.css'
 
 const COLORS = ['#6366f1', '#f97316', '#22c55e', '#3b82f6', '#a855f7', '#ec4899']
 
 export default function HubSpotPage() {
-  const { data: contacts, isLoading: loadingContacts } = useQuery({
+  const [selectedPipeline, setSelectedPipeline] = useState('')
+
+  const { data: contacts } = useQuery({
     queryKey: ['contacts-summary'],
     queryFn: getContactSummary,
   })
-  const { data: pipeline } = useQuery({
-    queryKey: ['deal-pipeline'],
-    queryFn: getDealPipeline,
+
+  const { data: allPipelines } = useQuery({
+    queryKey: ['pipelines'],
+    queryFn: getPipelines,
   })
+
+  const { data: pipeline, isLoading: loadingDeals } = useQuery({
+    queryKey: ['deal-pipeline', selectedPipeline],
+    queryFn: () => getDealPipeline(selectedPipeline || undefined),
+  })
+
+  const totalDealValue = (pipeline ?? []).reduce((s, d) => s + d.amount, 0)
 
   return (
     <div className="hubspot-page">
@@ -29,7 +40,7 @@ export default function HubSpotPage() {
         <StatCard label="Pipeline Stages" value={pipeline?.length ?? '—'} />
         <StatCard
           label="Total Deal Value"
-          value={`$${((pipeline ?? []).reduce((s, d) => s + d.amount, 0) / 1000).toFixed(0)}k`}
+          value={totalDealValue ? `$${(totalDealValue / 1000).toFixed(0)}k` : '—'}
           accent="orange"
         />
       </div>
@@ -38,25 +49,46 @@ export default function HubSpotPage() {
         <ChartCard title="Contacts by Lifecycle Stage">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={contacts?.byLifecycle ?? []} dataKey="count" nameKey="stage" outerRadius={110}>
+              <Pie
+                data={contacts?.byLifecycle ?? []}
+                dataKey="count"
+                nameKey="stage"
+                outerRadius={110}
+              >
                 {(contacts?.byLifecycle ?? []).map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip formatter={(v) => v.toLocaleString()} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Deal Pipeline — Amount by Stage">
+        <ChartCard
+          title={
+            <div className="chart-title-row">
+              <span>Deal Pipeline — Amount by Stage</span>
+              <select
+                className="pipeline-select"
+                value={selectedPipeline}
+                onChange={(e) => setSelectedPipeline(e.target.value)}
+              >
+                <option value="">All pipelines</option>
+                {(allPipelines ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+          }
+        >
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={pipeline ?? []}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="stage" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={50} />
-              <YAxis tick={{ fontSize: 12 }} />
+              <XAxis dataKey="stage" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={55} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
               <Tooltip formatter={(v) => `$${v.toLocaleString()}`} />
-              <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} name="Amount" />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>

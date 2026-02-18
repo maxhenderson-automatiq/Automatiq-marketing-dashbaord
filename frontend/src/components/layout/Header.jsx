@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom'
+import { isLocalDev } from '../../services/client'
 import './Header.css'
 
 const PAGE_TITLES = {
@@ -6,6 +7,12 @@ const PAGE_TITLES = {
   '/hubspot': 'HubSpot',
   '/pendo': 'Pendo',
 }
+
+const dataMode = (() => {
+  if (isLocalDev()) return { label: 'Live (dev proxy)', color: 'var(--color-green)' }
+  if (import.meta.env.VITE_API_BASE_URL) return { label: 'Live (API gateway)', color: 'var(--color-green)' }
+  return { label: 'Mock data', color: 'var(--color-orange)' }
+})()
 
 export default function Header() {
   const { pathname } = useLocation()
@@ -15,6 +22,9 @@ export default function Header() {
     <header className="header">
       <h1 className="header-title">{title}</h1>
       <div className="header-meta">
+        <span className="header-data-mode" style={{ color: dataMode.color }}>
+          ● {dataMode.label}
+        </span>
         <span className="header-date">
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long',
