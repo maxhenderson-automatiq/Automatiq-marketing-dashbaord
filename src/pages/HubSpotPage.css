@@ -1,0 +1,21 @@
+.hubspot-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.hubspot-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.hubspot-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .hubspot-charts { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,11 @@
+.pendo-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pendo-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
